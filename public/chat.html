@@ -1,0 +1,357 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Chat</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family:
+          -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu,
+          sans-serif;
+        background-color: #1a1a1a;
+        color: #e0e0e0;
+        height: 100vh;
+        display: flex;
+        flex-direction: column;
+      }
+
+      .chat-container {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        max-width: 800px;
+        width: 100%;
+        margin: 0 auto;
+        padding: 20px;
+        overflow: hidden;
+      }
+
+      .header {
+        text-align: center;
+        padding: 10px 0 20px;
+        border-bottom: 1px solid #333;
+        margin-bottom: 20px;
+      }
+
+      .header h1 {
+        font-size: 1.5rem;
+        font-weight: 500;
+        color: #fff;
+      }
+
+      .header .model {
+        font-size: 0.85rem;
+        color: #888;
+        margin-top: 4px;
+      }
+
+      .messages {
+        flex: 1;
+        overflow-y: auto;
+        padding-right: 10px;
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+      }
+
+      .message {
+        max-width: 80%;
+        padding: 12px 16px;
+        border-radius: 12px;
+        line-height: 1.5;
+        white-space: pre-wrap;
+        word-wrap: break-word;
+      }
+
+      .message.user {
+        align-self: flex-end;
+        background-color: #2563eb;
+        color: #fff;
+        border-bottom-right-radius: 4px;
+      }
+
+      .message.assistant {
+        align-self: flex-start;
+        background-color: #2d2d2d;
+        color: #e0e0e0;
+        border-bottom-left-radius: 4px;
+      }
+
+      .message.error {
+        align-self: center;
+        background-color: #991b1b;
+        color: #fecaca;
+        font-size: 0.9rem;
+      }
+
+      .input-container {
+        display: flex;
+        gap: 10px;
+        padding-top: 20px;
+        border-top: 1px solid #333;
+        margin-top: 20px;
+      }
+
+      textarea {
+        flex: 1;
+        padding: 12px 16px;
+        border: 1px solid #444;
+        border-radius: 8px;
+        background-color: #2d2d2d;
+        color: #e0e0e0;
+        font-size: 1rem;
+        font-family: inherit;
+        resize: none;
+        min-height: 48px;
+        max-height: 150px;
+      }
+
+      textarea:focus {
+        outline: none;
+        border-color: #2563eb;
+      }
+
+      textarea::placeholder {
+        color: #666;
+      }
+
+      button {
+        padding: 12px 24px;
+        background-color: #2563eb;
+        color: #fff;
+        border: none;
+        border-radius: 8px;
+        font-size: 1rem;
+        cursor: pointer;
+        transition: background-color 0.2s;
+      }
+
+      button:hover:not(:disabled) {
+        background-color: #1d4ed8;
+      }
+
+      button:disabled {
+        background-color: #444;
+        color: #666;
+        cursor: not-allowed;
+      }
+
+      .loading {
+        display: inline-block;
+        width: 20px;
+        height: 20px;
+      }
+
+      .loading::after {
+        content: "⠋";
+        animation: spinner 0.6s linear infinite;
+      }
+
+      @keyframes spinner {
+        0% {
+          content: "⠋";
+        }
+        14% {
+          content: "⠙";
+        }
+        28% {
+          content: "⠹";
+        }
+        42% {
+          content: "⠸";
+        }
+        57% {
+          content: "⠼";
+        }
+        71% {
+          content: "⠴";
+        }
+        85% {
+          content: "⠦";
+        }
+        100% {
+          content: "⠧";
+        }
+      }
+
+      /* Scrollbar styling */
+      .messages::-webkit-scrollbar {
+        width: 6px;
+      }
+
+      .messages::-webkit-scrollbar-track {
+        background: #1a1a1a;
+      }
+
+      .messages::-webkit-scrollbar-thumb {
+        background: #444;
+        border-radius: 3px;
+      }
+
+      .messages::-webkit-scrollbar-thumb:hover {
+        background: #555;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="chat-container">
+      <div class="header">
+        <h1>Chat</h1>
+        <div class="model">Model: MiniMax M2.1</div>
+      </div>
+
+      <div class="messages" id="messages"></div>
+
+      <div class="input-container">
+        <textarea
+          id="input"
+          placeholder="Type your message... (Enter to send, Shift+Enter for newline)"
+          rows="1"
+        ></textarea>
+        <button id="send">Send</button>
+      </div>
+    </div>
+
+    <script>
+      const messagesContainer = document.getElementById("messages");
+      const input = document.getElementById("input");
+      const sendButton = document.getElementById("send");
+
+      const MODEL = "MiniMax-M2.1";
+      let conversationHistory = [];
+      let isLoading = false;
+
+      // Auto-resize textarea
+      input.addEventListener("input", () => {
+        input.style.height = "auto";
+        input.style.height = Math.min(input.scrollHeight, 150) + "px";
+      });
+
+      // Handle Enter key
+      input.addEventListener("keydown", (e) => {
+        if (e.key === "Enter" && !e.shiftKey) {
+          e.preventDefault();
+          sendMessage();
+        }
+      });
+
+      sendButton.addEventListener("click", sendMessage);
+
+      function addMessage(role, content) {
+        const messageDiv = document.createElement("div");
+        messageDiv.className = `message ${role}`;
+        messageDiv.textContent = content;
+        messagesContainer.appendChild(messageDiv);
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        return messageDiv;
+      }
+
+      function setLoading(loading) {
+        isLoading = loading;
+        sendButton.disabled = loading;
+        input.disabled = loading;
+        sendButton.innerHTML = loading
+          ? '<span class="loading"></span>'
+          : "Send";
+      }
+
+      async function sendMessage() {
+        const content = input.value.trim();
+        if (!content || isLoading) return;
+
+        // Add user message to UI and history
+        addMessage("user", content);
+        conversationHistory.push({ role: "user", content });
+
+        input.value = "";
+        input.style.height = "auto";
+        setLoading(true);
+
+        // Create assistant message element for streaming
+        const assistantMessage = addMessage("assistant", "");
+
+        try {
+          const response = await fetch("/v1/chat/completions", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              model: MODEL,
+              messages: conversationHistory,
+              stream: true,
+            }),
+          });
+
+          if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`HTTP ${response.status}: ${errorText}`);
+          }
+
+          const reader = response.body.getReader();
+          const decoder = new TextDecoder();
+          let assistantContent = "";
+          let buffer = "";
+
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+
+            buffer += decoder.decode(value, { stream: true });
+            const lines = buffer.split("\n");
+
+            // Keep the last element if it's incomplete (no trailing newline)
+            buffer = lines.pop() || "";
+
+            for (const line of lines) {
+              if (line.startsWith("data: ")) {
+                const data = line.slice(6);
+                if (data === "[DONE]") continue;
+
+                try {
+                  const parsed = JSON.parse(data);
+                  const delta = parsed.choices?.[0]?.delta?.content;
+                  if (delta) {
+                    assistantContent += delta;
+                    assistantMessage.textContent = assistantContent;
+                    messagesContainer.scrollTop =
+                      messagesContainer.scrollHeight;
+                  }
+                } catch (e) {
+                  // Skip invalid JSON chunks
+                }
+              }
+            }
+          }
+
+          // Add assistant response to history
+          if (assistantContent) {
+            conversationHistory.push({
+              role: "assistant",
+              content: assistantContent,
+            });
+          }
+        } catch (error) {
+          console.error("Error:", error);
+          assistantMessage.remove();
+          addMessage("error", `Error: ${error.message}`);
+          // Remove the failed user message from history
+          conversationHistory.pop();
+        } finally {
+          setLoading(false);
+          input.focus();
+        }
+      }
+
+      // Focus input on load
+      input.focus();
+    </script>
+  </body>
+</html>
