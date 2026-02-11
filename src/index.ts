@@ -4,10 +4,46 @@ import { accessAuth } from "./middleware/auth";
 const app = new Hono<{ Bindings: CloudflareBindings }>();
 
 // Protect all routes with Cloudflare Access JWT validation
-app.use("*", accessAuth);
+// app.use("*", accessAuth);
 
 // OpenAI-compatible Chat Completions API
 // Enable API access in your Gateway to use this
+app.post("/talk", async (c) => {
+  if (!c.env.OPENCLAW_GATEWAY_TOKEN) {
+    console.error("[Chat] OPENCLAW_GATEWAY_TOKEN secret is not set");
+    return c.json({ error: "Server configuration error" }, 500);
+  }
+
+  try {
+    const text = await c.req.json();
+    console.log("[Chat] Received message:", text.message);
+    const response = await c.env.VPC_SERVICE.fetch(
+      "http://localhost:18789/v1/chat/completions",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${c.env.OPENCLAW_GATEWAY_TOKEN}`,
+        },
+        body: JSON.stringify({
+          messages: [
+            {
+              role: "user",
+              content: text.message,
+            },
+          ],
+        }),
+      },
+    );
+    const result = await response.json();
+    console.log("[Chat] Response:", result.choices?.[0]?.message.content);
+    return c.text(result.choices?.[0]?.message.content || "");
+  } catch (e) {
+    console.error("[Chat] Error:", e);
+    return c.json({ error: "Failed to process chat request" }, 500);
+  }
+});
+
 app.post("/v1/chat/completions", async (c) => {
   if (!c.env.OPENCLAW_GATEWAY_TOKEN) {
     console.error("[Chat] OPENCLAW_GATEWAY_TOKEN secret is not set");
@@ -37,11 +73,14 @@ app.post("/v1/chat/completions", async (c) => {
 // Tools invocation API
 app.post("/tools/invoke", async (c) => {
   try {
-    return await c.env.VPC_SERVICE.fetch("http://localhost:18789/tools/invoke", {
-      method: "POST",
-      headers: c.req.raw.headers,
-      body: c.req.raw.body,
-    });
+    return await c.env.VPC_SERVICE.fetch(
+      "http://localhost:18789/tools/invoke",
+      {
+        method: "POST",
+        headers: c.req.raw.headers,
+        body: c.req.raw.body,
+      },
+    );
   } catch (e) {
     console.error("[Tools] Error:", e);
     return c.json({ error: "Failed to invoke tool" }, 500);

@@ -49,10 +49,10 @@ flowchart LR
 
 2. Copy the example environment file and configure your secrets:
    ```bash
-   cp .dev.vars.example .dev.vars
+   cp .env.example .env
    ```
 
-3. Update `.dev.vars` with your Cloudflare Access policy AUD tag:
+3. Update `.env` with your Cloudflare Access policy AUD tag:
    ```
    POLICY_AUD=your-access-application-aud-tag
    ```
