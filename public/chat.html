@@ -204,7 +204,7 @@
     <div class="chat-container">
       <div class="header">
         <h1>Chat</h1>
-        <div class="model">Model: MiniMax M2.1</div>
+        <div class="model">Model: openclaw:main</div>
       </div>
 
       <div class="messages" id="messages"></div>
@@ -224,7 +224,6 @@
       const input = document.getElementById("input");
       const sendButton = document.getElementById("send");
 
-      const MODEL = "MiniMax-M2.1";
       let conversationHistory = [];
       let isLoading = false;
 
@@ -284,7 +283,7 @@
               "Content-Type": "application/json",
             },
             body: JSON.stringify({
-              model: MODEL,
+              model: "openclaw:main",
               messages: conversationHistory,
               stream: true,
             }),
