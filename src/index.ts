@@ -4,7 +4,7 @@ import { accessAuth } from "./middleware/auth";
 const app = new Hono<{ Bindings: CloudflareBindings }>();
 
 // Protect all routes with Cloudflare Access JWT validation
-// app.use("*", accessAuth);
+app.use("*", accessAuth);
 
 // OpenAI-compatible Chat Completions API
 // Enable API access in your Gateway to use this
@@ -88,17 +88,18 @@ app.post("/tools/invoke", async (c) => {
 });
 
 // Below routes proxy the default UI
-
 // SPA assets (when accessed from /app/* routes)
 app.get("/app/assets/*", async (c) => {
   const url = new URL(c.req.url);
   const assetPath = url.pathname.replace("/app/assets", "/assets");
   return c.env.VPC_SERVICE.fetch(`http://localhost:18789${assetPath}`);
 });
+
 // Favicon for SPA routes
 app.get("/app/favicon.ico", async (c) => {
   return c.env.VPC_SERVICE.fetch("http://localhost:18789/favicon.ico");
 });
+
 // SPA catch-all (serves HTML for all /app/* routes)
 app.get("/app/*", async (c) => {
   return c.env.VPC_SERVICE.fetch("http://localhost:18789/");
