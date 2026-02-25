@@ -1,5 +1,5 @@
 {
-	"name": "workers-openclaw-vpc",
+	"name": "openclaw-workers-vpc",
 	"type": "module",
 	"scripts": {
 		"dev": "wrangler dev",
