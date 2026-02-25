@@ -9,19 +9,19 @@ import { jwtVerify, createRemoteJWKSet } from "jose";
  * users who have passed through Cloudflare Access can reach your application.
  *
  * Required environment variables:
- * - TEAM_DOMAIN: Your Cloudflare Access team domain (e.g., https://your-team.cloudflareaccess.com)
- * - POLICY_AUD: The Application Audience (AUD) tag from your Access application
+ * - CF_ACCESS_TEAM_NAME: Your Cloudflare Access team domain (e.g., your-team.cloudflareaccess.com)
+ * - CF_ACCESS_AUD: The Application Audience (AUD) tag from your Access application
  */
 export const accessAuth = createMiddleware<{ Bindings: CloudflareBindings }>(
   async (c, next) => {
     // Verify required environment variables are set
-    if (!c.env.TEAM_DOMAIN) {
-      console.error("[Auth] TEAM_DOMAIN environment variable is not set");
+    if (!c.env.CF_ACCESS_TEAM_NAME) {
+      console.error("[Auth] CF_ACCESS_TEAM_NAME environment variable is not set");
       return c.json({ error: "Server configuration error" }, 500);
     }
 
-    if (!c.env.POLICY_AUD) {
-      console.error("[Auth] POLICY_AUD secret is not set");
+    if (!c.env.CF_ACCESS_AUD) {
+      console.error("[Auth] CF_ACCESS_AUD secret is not set");
       return c.json({ error: "Server configuration error" }, 500);
     }
 
@@ -36,7 +36,7 @@ export const accessAuth = createMiddleware<{ Bindings: CloudflareBindings }>(
       // Create JWKS (JSON Web Key Set) from your team's public keys endpoint
       // This fetches the public keys used to verify the JWT signature
       const JWKS = createRemoteJWKSet(
-        new URL(`${c.env.TEAM_DOMAIN}/cdn-cgi/access/certs`)
+        new URL(`https://${c.env.CF_ACCESS_TEAM_NAME}/cdn-cgi/access/certs`)
       );
 
       // Verify the JWT:
@@ -45,8 +45,8 @@ export const accessAuth = createMiddleware<{ Bindings: CloudflareBindings }>(
       // - Checks that the audience matches your application's AUD tag
       // - Validates expiration (exp) and not-before (nbf) claims
       await jwtVerify(token, JWKS, {
-        issuer: c.env.TEAM_DOMAIN,
-        audience: c.env.POLICY_AUD,
+        issuer: `https://${c.env.CF_ACCESS_TEAM_NAME}`,
+        audience: c.env.CF_ACCESS_AUD,
       });
 
       // Token is valid, proceed to the next handler

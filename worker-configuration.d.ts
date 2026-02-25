@@ -8,9 +8,9 @@ declare namespace Cloudflare {
 	interface Env {
 		VPC_SERVICE: Fetcher;
 		ASSETS: Fetcher;
-		TEAM_DOMAIN: "https://harshil1712.cloudflareaccess.com";
+		CF_ACCESS_TEAM_NAME: string;
 		OPENCLAW_GATEWAY_TOKEN: string;
-		POLICY_AUD: string;
+		CF_ACCESS_AUD: string;
 	}
 }
 interface CloudflareBindings extends Cloudflare.Env {}

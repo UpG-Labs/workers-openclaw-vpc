@@ -41,6 +41,7 @@ flowchart LR
 ## Quick Start
 
 1. Clone the repository and install dependencies:
+
    ```bash
    git clone <repository-url>
    cd workers-openclaw-vpc
@@ -48,16 +49,26 @@ flowchart LR
    ```
 
 2. Copy the example environment file and configure your secrets:
+
    ```bash
    cp .env.example .env
    ```
 
-3. Update `.env` with your Cloudflare Access policy AUD tag:
-   ```
-   POLICY_AUD=your-access-application-aud-tag
+3. Update `.env` with your Cloudflare Access policy AUD tag and team name:
+
+   ```bash
+   CF_ACCESS_AUD=your-access-application-aud-tag
+   CF_ACCESS_TEAM_NAME=your-team-name.cloudflareaccess.com
    ```
 
-4. Start the development server:
+4. Update `.env` with your OpenClaw gateway token:
+
+   ```bash
+   OPENCLAW_GATEWAY_TOKEN=your-gateway-token
+   ```
+
+5. Start the development server:
+
    ```bash
    npm run dev
    ```
@@ -68,8 +79,8 @@ flowchart LR
 
 | Variable                 | Description                                                                         | Required     |
 | ------------------------ | ----------------------------------------------------------------------------------- | ------------ |
-| `TEAM_DOMAIN`            | Your Cloudflare Access team domain (e.g., `https://your-team.cloudflareaccess.com`) | Yes          |
-| `POLICY_AUD`             | The Application Audience (AUD) tag from your Access application                     | Yes (secret) |
+| `CF_ACCESS_AUD`          | The Application Audience (AUD) tag from your Access application                     | Yes (secret) |
+| `CF_ACCESS_TEAM_NAME`    | Your Cloudflare Access team domain (e.g., `your-team.cloudflareaccess.com`)         | Yes (secret) |
 | `OPENCLAW_GATEWAY_TOKEN` | The OpenClaw Gateway Token                                                          | Yes (secret) |
 
 ### Wrangler Configuration
@@ -129,13 +140,16 @@ See [Cloudflare Access documentation](https://developers.cloudflare.com/cloudfla
 
 1. Update `wrangler.jsonc` with your VPC Service ID
 
-2. Set the `POLICY_AUD` and `OPENCLAW_GATEWAY_TOKEN` secret:
+2. Set the `CF_ACCESS_AUD`, `CF_ACCESS_TEAM_NAME` and `OPENCLAW_GATEWAY_TOKEN` secrets:
+
    ```bash
-   npx wrangler secret put POLICY_AUD
+   npx wrangler secret put CF_ACCESS_AUD
+   npx wrangler secret put CF_ACCESS_TEAM_NAME
    npx wrangler secret put OPENCLAW_GATEWAY_TOKEN
    ```
 
 3. Deploy:
+
    ```bash
    npm run deploy
    ```
@@ -159,7 +173,7 @@ A simple chat interface is included at `/chat.html` for testing the `/v1/chat/co
 - Conversation history management
 - Basic error handling
 
-**Note:** The demo uses a hardcoded model name (`MiniMax-M2.1`). If you're using a different model, edit `public/chat.html` and update the `MODEL` constant on line 227.
+**Note:** The demo uses a hardcoded model name (`openclaw:main`). If you're using a different model, edit `public/chat.html` and update the `model` constant on lines 207 and 286.
 
 ## Development
 
