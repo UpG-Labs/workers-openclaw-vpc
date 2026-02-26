@@ -75,11 +75,13 @@ app.post("/v1/chat/completions", async (c) => {
 // Tools invocation API
 app.post("/tools/invoke", async (c) => {
   try {
+    const mergedHeaders = new Headers(c.req.raw.headers);
+    mergedHeaders.set('Origin', 'http://localhost:18789');
     return await c.env.VPC_SERVICE.fetch(
       "http://localhost:18789/tools/invoke",
       {
         method: "POST",
-        headers: c.req.raw.headers,
+        headers: mergedHeaders,
         body: c.req.raw.body,
       },
     );
