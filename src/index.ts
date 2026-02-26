@@ -96,23 +96,51 @@ app.post("/tools/invoke", async (c) => {
 app.get("/app/assets/*", async (c) => {
   const url = new URL(c.req.url);
   const assetPath = url.pathname.replace("/app/assets", "/assets");
-  return c.env.VPC_SERVICE.fetch(`http://localhost:18789${assetPath}`, { headers: "Origin": "http://localhost:18789" });
+  return c.env.VPC_SERVICE.fetch(
+    `http://localhost:18789${assetPath}`,
+    {
+      headers: {
+        "Origin": "http://localhost:18789",
+      },
+    },
+  );
 });
 
 // Favicon for SPA routes
 app.get("/app/favicon.ico", async (c) => {
-  return c.env.VPC_SERVICE.fetch("http://localhost:18789/favicon.ico", { headers: "Origin": "http://localhost:18789" });
+  return c.env.VPC_SERVICE.fetch(
+    "http://localhost:18789/favicon.ico",
+    {
+      headers: {
+        "Origin": "http://localhost:18789",
+      },
+    },
+  );
 });
 
 // SPA catch-all (serves HTML for all /app/* routes)
 app.get("/app/*", async (c) => {
-  return c.env.VPC_SERVICE.fetch("http://localhost:18789/", { headers: "Origin": "http://localhost:18789" });
+  return c.env.VPC_SERVICE.fetch(
+    "http://localhost:18789/",
+    {
+      headers: {
+        "Origin": "http://localhost:18789",
+      },
+    },
+  );
 });
 
 // Direct assets (fallback)
 app.get("/assets/*", async (c) => {
   const url = new URL(c.req.url);
-  return c.env.VPC_SERVICE.fetch(`http://localhost:18789${url.pathname}`, { headers: "Origin": "http://localhost:18789" });
+  return c.env.VPC_SERVICE.fetch(
+    `http://localhost:18789${url.pathname}`,
+    {
+      headers: {
+        "Origin": "http://localhost:18789",
+      },
+    },
+  );
 });
 
 // Root: WebSocket proxy + redirect
