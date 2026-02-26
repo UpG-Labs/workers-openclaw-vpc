@@ -118,6 +118,18 @@ app.get("/app/favicon.ico", async (c) => {
   );
 });
 
+// Logo for SPA routes
+app.get("/app/favicon.svg", async (c) => {
+  return c.env.VPC_SERVICE.fetch(
+    "http://localhost:18789/favicon.svg",
+    {
+      headers: {
+        "Origin": "http://localhost:18789",
+      },
+    },
+  );
+});
+
 // SPA catch-all (serves HTML for all /app/* routes)
 app.get("/app/*", async (c) => {
   return c.env.VPC_SERVICE.fetch(
