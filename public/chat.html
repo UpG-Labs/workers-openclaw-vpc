@@ -277,7 +277,7 @@
         const assistantMessage = addMessage("assistant", "");
 
         try {
-          const response = await fetch("/v1/chat/completions", {
+          const response = await fetch("/api/chat/completions", {
             method: "POST",
             headers: {
               "Content-Type": "application/json",

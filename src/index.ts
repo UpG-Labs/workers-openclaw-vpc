@@ -6,6 +6,35 @@ const app = new Hono<{ Bindings: CloudflareBindings }>();
 // Protect all routes with Cloudflare Access JWT validation
 app.use("*", accessAuth);
 
+// Chat proxy endpoint - allows authenticated users to call the chat API
+// This endpoint directly calls the VPC service, bypassing the need for service tokens
+app.post("/api/chat/completions", async (c) => {
+  if (!c.env.OPENCLAW_GATEWAY_TOKEN) {
+    console.error("[Chat] OPENCLAW_GATEWAY_TOKEN secret is not set");
+    return c.json({ error: "Server configuration error" }, 500);
+  }
+
+  try {
+    const body = await c.req.text();
+    const response = await c.env.VPC_SERVICE.fetch(
+      "http://localhost:18789/v1/chat/completions",
+      {
+        method: "POST",
+        headers: {
+          "Origin": "http://localhost:18789",
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${c.env.OPENCLAW_GATEWAY_TOKEN}`,
+        },
+        body: body,
+      },
+    );
+    return response;
+  } catch (e) {
+    console.error("[Chat] Error:", e);
+    return c.json({ error: "Failed to process chat request" }, 500);
+  }
+});
+
 // OpenAI-compatible Chat Completions API
 // Enable API access in your Gateway to use this
 app.post("/talk", async (c) => {
@@ -36,7 +65,7 @@ app.post("/talk", async (c) => {
         }),
       },
     );
-    const result = await response.json();
+    const result = (await response.json()) as any;
     console.log("[Chat] Response:", result.choices?.[0]?.message.content);
     return c.text(result.choices?.[0]?.message.content || "");
   } catch (e) {

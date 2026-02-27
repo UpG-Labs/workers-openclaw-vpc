@@ -4,13 +4,17 @@ import { jwtVerify, createRemoteJWKSet } from "jose";
 /**
  * Cloudflare Access JWT validation middleware.
  *
- * Validates the JWT token provided by Cloudflare Access in the
- * `Cf-Access-Jwt-Assertion` header. This ensures that only authenticated
- * users who have passed through Cloudflare Access can reach your application.
+ * Validates authentication through either:
+ * 1. User JWT from Cloudflare Access in the `Cf-Access-Jwt-Assertion` header
+ * 2. Service tokens via `CF-Access-Client-Id` and `CF-Access-Client-Secret` headers
+ *
+ * This ensures that only authenticated users or services can reach your application.
  *
  * Required environment variables:
  * - CF_ACCESS_TEAM_NAME: Your Cloudflare Access team domain (e.g., your-team.cloudflareaccess.com)
  * - CF_ACCESS_AUD: The Application Audience (AUD) tag from your Access application
+ * - CF_ACCESS_CLIENT_ID: (Optional) Service token Client ID
+ * - CF_ACCESS_CLIENT_SECRET: (Optional) Service token Client Secret
  */
 export const accessAuth = createMiddleware<{ Bindings: CloudflareBindings }>(
   async (c, next) => {
@@ -25,11 +29,32 @@ export const accessAuth = createMiddleware<{ Bindings: CloudflareBindings }>(
       return c.json({ error: "Server configuration error" }, 500);
     }
 
-    // Get the JWT from the Cloudflare Access header
+    // Check for service token authentication first
+    const clientId = c.req.header("CF-Access-Client-Id");
+    const clientSecret = c.req.header("CF-Access-Client-Secret");
+
+    if (clientId && clientSecret) {
+      // Validate service token
+      if (
+        c.env.CF_ACCESS_CLIENT_ID &&
+        c.env.CF_ACCESS_CLIENT_SECRET &&
+        clientId === c.env.CF_ACCESS_CLIENT_ID &&
+        clientSecret === c.env.CF_ACCESS_CLIENT_SECRET
+      ) {
+        console.log("[Auth] Service token validated successfully");
+        await next();
+        return;
+      } else {
+        console.error("[Auth] Invalid service token credentials");
+        return c.json({ error: "Invalid service token" }, 403);
+      }
+    }
+
+    // Fall back to user JWT authentication
     const token = c.req.header("cf-access-jwt-assertion");
 
     if (!token) {
-      return c.json({ error: "Missing required CF Access JWT" }, 403);
+      return c.json({ error: "Missing required CF Access JWT or service token" }, 403);
     }
 
     try {

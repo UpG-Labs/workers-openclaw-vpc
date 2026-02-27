@@ -77,11 +77,13 @@ flowchart LR
 
 ### Environment Variables
 
-| Variable                 | Description                                                                         | Required     |
-| ------------------------ | ----------------------------------------------------------------------------------- | ------------ |
-| `CF_ACCESS_AUD`          | The Application Audience (AUD) tag from your Access application                     | Yes (secret) |
-| `CF_ACCESS_TEAM_NAME`    | Your Cloudflare Access team domain (e.g., `your-team.cloudflareaccess.com`)         | Yes (secret) |
-| `OPENCLAW_GATEWAY_TOKEN` | The OpenClaw Gateway Token                                                          | Yes (secret) |
+| Variable                   | Description                                                                         | Required     |
+| -------------------------- | ----------------------------------------------------------------------------------- | ------------ |
+| `CF_ACCESS_AUD`            | The Application Audience (AUD) tag from your Access application                     | Yes (secret) |
+| `CF_ACCESS_TEAM_NAME`      | Your Cloudflare Access team domain (e.g., `your-team.cloudflareaccess.com`)         | Yes (secret) |
+| `CF_ACCESS_CLIENT_ID`      | Service Token Client ID (for service-to-service authentication)                     | No (secret)  |
+| `CF_ACCESS_CLIENT_SECRET`  | Service Token Client Secret (for service-to-service authentication)                 | No (secret)  |
+| `OPENCLAW_GATEWAY_TOKEN`   | The OpenClaw Gateway Token                                                          | Yes (secret) |
 
 ### Wrangler Configuration
 
@@ -134,13 +136,23 @@ Save the returned Service ID for the next step. See [VPC Services documentation]
 4. Create an Access policy to control who can access the application
 5. After saving, find the **Application Audience (AUD) Tag** in the application's overview page
 
-See [Cloudflare Access documentation](https://developers.cloudflare.com/cloudflare-one/access-controls/applications/http-apps/) for detailed setup.
+#### Create Service Tokens (Optional)
+
+Service tokens allow server-to-server authentication without requiring user login. To create service tokens:
+
+1. Go to [Cloudflare Zero Trust](https://one.dash.cloudflare.com/) → **Access** → **Service Auth** → **Service Tokens**
+2. Click **Create Service Token**
+3. Give it a descriptive name (e.g., "OpenClaw Worker Service Token")
+4. Save the **Client ID** and **Client Secret** - you'll need these for deployment
+5. Add the service token to your Access application's policy
+
+See [Cloudflare Access documentation](https://developers.cloudflare.com/cloudflare-one/access-controls/applications/http-apps/) and [Service Tokens documentation](https://developers.cloudflare.com/cloudflare-one/identity/service-tokens/) for detailed setup.
 
 ### 4. Deploy the Worker
 
 1. Update `wrangler.jsonc` with your VPC Service ID
 
-2. Set the `CF_ACCESS_AUD`, `CF_ACCESS_TEAM_NAME` and `OPENCLAW_GATEWAY_TOKEN` secrets:
+2. Set the required secrets:
 
    ```bash
    npx wrangler secret put CF_ACCESS_AUD
@@ -148,7 +160,14 @@ See [Cloudflare Access documentation](https://developers.cloudflare.com/cloudfla
    npx wrangler secret put OPENCLAW_GATEWAY_TOKEN
    ```
 
-3. Deploy:
+3. Optionally, set service token secrets (if you created service tokens):
+
+   ```bash
+   npx wrangler secret put CF_ACCESS_CLIENT_ID
+   npx wrangler secret put CF_ACCESS_CLIENT_SECRET
+   ```
+
+4. Deploy:
 
    ```bash
    npm run deploy
@@ -156,14 +175,16 @@ See [Cloudflare Access documentation](https://developers.cloudflare.com/cloudfla
 
 ## API Routes
 
-| Route                  | Method | Auth | Description                                                                        |
-| ---------------------- | ------ | ---- | ---------------------------------------------------------------------------------- |
-| `/v1/chat/completions` | POST   | Yes  | OpenAI-compatible Chat Completions API. Make sure you enable API for your Gateway. |
-| `/tools/invoke`        | POST   | Yes  | Tools invocation API                                                               |
-| `/`                    | GET    | Yes  | WebSocket proxy; redirects HTTP to `/app`                                          |
-| `/app/*`               | GET    | Yes  | SPA routes (OpenClaw dashboard)                                                    |
-| `/assets/*`            | GET    | Yes  | Static assets                                                                      |
-| `/chat.html`           | GET    | Yes  | Demo chat interface (see below)                                                    |
+| Route                     | Method | Auth | Description                                                                        |
+| ------------------------- | ------ | ---- | ---------------------------------------------------------------------------------- |
+| `/api/chat/completions`   | POST   | Yes  | Chat proxy endpoint for authenticated users (used by `/chat.html`)                |
+| `/v1/chat/completions`    | POST   | Yes  | OpenAI-compatible Chat Completions API. Make sure you enable API for your Gateway. |
+| `/talk`                   | POST   | Yes  | Simple chat endpoint that returns text responses                                   |
+| `/tools/invoke`           | POST   | Yes  | Tools invocation API                                                               |
+| `/`                       | GET    | Yes  | WebSocket proxy; redirects HTTP to `/app`                                          |
+| `/app/*`                  | GET    | Yes  | SPA routes (OpenClaw dashboard)                                                    |
+| `/assets/*`               | GET    | Yes  | Static assets                                                                      |
+| `/chat.html`              | GET    | Yes  | Demo chat interface (see below)                                                    |
 
 ## Demo Chat Interface
 
