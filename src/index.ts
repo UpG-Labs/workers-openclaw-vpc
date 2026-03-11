@@ -26,9 +26,9 @@ app.post("/v1/chat/completions", async (c) => {
       {
         method: "POST",
         headers: {
-          Origin: getOrigin(c),
-          Content-Type: "application/json",
-          Authorization: `Bearer ${c.env.OPENCLAW_GATEWAY_TOKEN}`,
+          "Origin": getOrigin(c),
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${c.env.OPENCLAW_GATEWAY_TOKEN}`,
         },
         body: body,
       },
@@ -68,7 +68,7 @@ app.get("/app/assets/*", async (c) => {
     `http://localhost:18789${assetPath}`,
     {
       headers: {
-        Origin: getOrigin(c),
+        "Origin": getOrigin(c),
       },
     },
   );
@@ -80,7 +80,7 @@ app.get("/app/favicon.ico", async (c) => {
     "http://localhost:18789/favicon.ico",
     {
       headers: {
-        Origin: getOrigin(c),
+        "Origin": getOrigin(c),
       },
     },
   );
@@ -92,7 +92,7 @@ app.get("/app/favicon.svg", async (c) => {
     "http://localhost:18789/favicon.svg",
     {
       headers: {
-        Origin: getOrigin(c),
+        "Origin": getOrigin(c),
       },
     },
   );
@@ -104,7 +104,7 @@ app.get("/app/*", async (c) => {
     "http://localhost:18789/",
     {
       headers: {
-        Origin: getOrigin(c),
+        "Origin": getOrigin(c),
       },
     },
   );
@@ -117,7 +117,7 @@ app.get("/assets/*", async (c) => {
     `http://localhost:18789${url.pathname}`,
     {
       headers: {
-        Origin: getOrigin(c),
+        "Origin": getOrigin(c),
       },
     },
   );
@@ -134,11 +134,11 @@ app.get("/app", async (c) => {
         "http://localhost:18789/",
         {
           headers: {
-            Origin: getOrigin(c),
-            Upgrade: "websocket",
-            Connection: "Upgrade",
-            Sec-WebSocket-Version: "13",
-            Sec-WebSocket-Key:
+            "Origin": getOrigin(c),
+            "Upgrade": "websocket",
+            "Connection": "Upgrade",
+            "Sec-WebSocket-Version": "13",
+            "Sec-WebSocket-Key":
               c.req.header("Sec-WebSocket-Key") || "dGhlIHNhbXBsZSBub25jZQ==",
           },
         },
@@ -211,11 +211,11 @@ app.get("/", async (c) => {
         "http://localhost:18789/",
         {
           headers: {
-            Origin: getOrigin(c),
-            Upgrade: "websocket",
-            Connection: "Upgrade",
-            Sec-WebSocket-Version: "13",
-            Sec-WebSocket-Key:
+            "Origin": getOrigin(c),
+            "Upgrade": "websocket",
+            "Connection": "Upgrade",
+            "Sec-WebSocket-Version": "13",
+            "Sec-WebSocket-Key":
               c.req.header("Sec-WebSocket-Key") || "dGhlIHNhbXBsZSBub25jZQ==",
           },
         },
