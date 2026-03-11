@@ -82,6 +82,7 @@ flowchart LR
 | `CF_ACCESS_AUD`          | The Application Audience (AUD) tag from your Access application                     | Yes (secret) |
 | `CF_ACCESS_TEAM_NAME`    | Your Cloudflare Access team domain (e.g., `your-team.cloudflareaccess.com`)         | Yes (secret) |
 | `OPENCLAW_GATEWAY_TOKEN` | The OpenClaw Gateway Token                                                          | Yes (secret) |
+| `OPENCLAW_GATEWAY_ORIGIN` | Override the Origin header sent to the gateway. If unset, uses the browser's Origin or Host header. | No |
 
 ### Wrangler Configuration
 

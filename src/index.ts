@@ -1,5 +1,10 @@
 import { Hono } from "hono";
+import { Context } from "hono";
 import { accessAuth } from "./middleware/auth";
+
+function getOrigin(c: Context<{ Bindings: CloudflareBindings }>): string {
+  return c.env.OPENCLAW_GATEWAY_ORIGIN || c.req.header("Origin") || c.req.header("Host") || "";
+}
 
 const app = new Hono<{ Bindings: CloudflareBindings }>();
 
@@ -21,7 +26,7 @@ app.post("/v1/chat/completions", async (c) => {
       {
         method: "POST",
         headers: {
-          "Origin": "http://localhost:18789",
+          "Origin": getOrigin(c),
           "Content-Type": "application/json",
           Authorization: `Bearer ${c.env.OPENCLAW_GATEWAY_TOKEN}`,
         },
@@ -39,7 +44,7 @@ app.post("/v1/chat/completions", async (c) => {
 app.post("/tools/invoke", async (c) => {
   try {
     const mergedHeaders = new Headers(c.req.raw.headers);
-    mergedHeaders.set('Origin', 'http://localhost:18789');
+    mergedHeaders.set('Origin', getOrigin(c));
     return await c.env.VPC_SERVICE.fetch(
       "http://localhost:18789/tools/invoke",
       {
@@ -63,7 +68,7 @@ app.get("/app/assets/*", async (c) => {
     `http://localhost:18789${assetPath}`,
     {
       headers: {
-        "Origin": "http://localhost:18789",
+        "Origin": getOrigin(c),
       },
     },
   );
@@ -75,7 +80,7 @@ app.get("/app/favicon.ico", async (c) => {
     "http://localhost:18789/favicon.ico",
     {
       headers: {
-        "Origin": "http://localhost:18789",
+        "Origin": getOrigin(c),
       },
     },
   );
@@ -87,7 +92,7 @@ app.get("/app/favicon.svg", async (c) => {
     "http://localhost:18789/favicon.svg",
     {
       headers: {
-        "Origin": "http://localhost:18789",
+        "Origin": getOrigin(c),
       },
     },
   );
@@ -99,7 +104,7 @@ app.get("/app/*", async (c) => {
     "http://localhost:18789/",
     {
       headers: {
-        "Origin": "http://localhost:18789",
+        "Origin": getOrigin(c),
       },
     },
   );
@@ -112,7 +117,7 @@ app.get("/assets/*", async (c) => {
     `http://localhost:18789${url.pathname}`,
     {
       headers: {
-        "Origin": "http://localhost:18789",
+        "Origin": getOrigin(c),
       },
     },
   );
@@ -129,7 +134,7 @@ app.get("/", async (c) => {
         "http://localhost:18789/",
         {
           headers: {
-            Origin: "http://localhost:18789",
+            Origin: getOrigin(c),
             Upgrade: "websocket",
             Connection: "Upgrade",
             "Sec-WebSocket-Version": "13",
@@ -160,12 +165,12 @@ app.get("/", async (c) => {
       server.addEventListener("close", (event) => {
         try {
           openclawWs.close(event.code, event.reason);
-        } catch {}
+        } catch { }
       });
       server.addEventListener("error", () => {
         try {
           openclawWs.close(1011, "Client error");
-        } catch {}
+        } catch { }
       });
       openclawWs.addEventListener("message", (event) => {
         try {
@@ -177,12 +182,12 @@ app.get("/", async (c) => {
       openclawWs.addEventListener("close", (event) => {
         try {
           server.close(event.code, event.reason);
-        } catch {}
+        } catch { }
       });
       openclawWs.addEventListener("error", () => {
         try {
           server.close(1011, "Server error");
-        } catch {}
+        } catch { }
       });
       return new Response(null, {
         status: 101,
