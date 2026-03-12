@@ -3,6 +3,21 @@ import { accessAuth } from "./middleware/auth";
 
 const app = new Hono<{ Bindings: CloudflareBindings }>();
 
+function buildProxyHeaders(c: { req: { raw: Request; header: (name: string) => string | undefined } }): Headers {
+  const headers = new Headers(c.req.raw.headers);
+  const clientIp = c.req.header("CF-Connecting-IP") || "unknown";
+  headers.set("X-Forwarded-For", clientIp);
+  headers.set("X-Real-IP", clientIp);
+  return headers;
+}
+
+function buildGatewayHeaders(c: { req: { raw: Request; header: (name: string) => string | undefined }; env: { OPENCLAW_GATEWAY_TOKEN: string } }): Headers {
+  const headers = buildProxyHeaders(c);
+  headers.set("Content-Type", "application/json");
+  headers.set("Authorization", `Bearer ${c.env.OPENCLAW_GATEWAY_TOKEN}`);
+  return headers;
+}
+
 // Protect all routes with Cloudflare Access JWT validation
 app.use("*", accessAuth);
 
@@ -20,11 +35,7 @@ app.post("/v1/chat/completions", async (c) => {
       "http://localhost:18789/v1/chat/completions",
       {
         method: "POST",
-        headers: {
-          "Origin": "http://localhost:18789",
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${c.env.OPENCLAW_GATEWAY_TOKEN}`,
-        },
+        headers: buildGatewayHeaders(c),
         body: body,
       },
     );
@@ -38,13 +49,11 @@ app.post("/v1/chat/completions", async (c) => {
 // Tools invocation API
 app.post("/tools/invoke", async (c) => {
   try {
-    const mergedHeaders = new Headers(c.req.raw.headers);
-    mergedHeaders.set('Origin', 'http://localhost:18789');
     return await c.env.VPC_SERVICE.fetch(
       "http://localhost:18789/tools/invoke",
       {
         method: "POST",
-        headers: mergedHeaders,
+        headers: buildProxyHeaders(c),
         body: c.req.raw.body,
       },
     );
@@ -62,9 +71,7 @@ app.get("/app/assets/*", async (c) => {
   return c.env.VPC_SERVICE.fetch(
     `http://localhost:18789${assetPath}`,
     {
-      headers: {
-        "Origin": "http://localhost:18789",
-      },
+      headers: buildProxyHeaders(c),
     },
   );
 });
@@ -74,9 +81,7 @@ app.get("/app/favicon.ico", async (c) => {
   return c.env.VPC_SERVICE.fetch(
     "http://localhost:18789/favicon.ico",
     {
-      headers: {
-        "Origin": "http://localhost:18789",
-      },
+      headers: buildProxyHeaders(c),
     },
   );
 });
@@ -86,9 +91,7 @@ app.get("/app/favicon.svg", async (c) => {
   return c.env.VPC_SERVICE.fetch(
     "http://localhost:18789/favicon.svg",
     {
-      headers: {
-        "Origin": "http://localhost:18789",
-      },
+      headers: buildProxyHeaders(c),
     },
   );
 });
@@ -103,14 +106,7 @@ app.get("/app/*", async (c) => {
       const openclawResponse = await c.env.VPC_SERVICE.fetch(
         "http://localhost:18789/",
         {
-          headers: {
-            "Origin": getOrigin(c),
-            "Upgrade": "websocket",
-            "Connection": "Upgrade",
-            "Sec-WebSocket-Version": "13",
-            "Sec-WebSocket-Key":
-              c.req.header("Sec-WebSocket-Key") || "dGhlIHNhbXBsZSBub25jZQ==",
-          },
+          headers: buildProxyHeaders(c),
         },
       );
       const openclawWs = openclawResponse.webSocket;
@@ -171,9 +167,7 @@ app.get("/app/*", async (c) => {
   return c.env.VPC_SERVICE.fetch(
     "http://localhost:18789/",
     {
-      headers: {
-        "Origin": "http://localhost:18789",
-      },
+      headers: buildProxyHeaders(c),
     },
   );
 });
@@ -184,9 +178,7 @@ app.get("/assets/*", async (c) => {
   return c.env.VPC_SERVICE.fetch(
     `http://localhost:18789${url.pathname}`,
     {
-      headers: {
-        "Origin": "http://localhost:18789",
-      },
+      headers: buildProxyHeaders(c),
     },
   );
 });
@@ -201,14 +193,7 @@ app.get("/", async (c) => {
       const openclawResponse = await c.env.VPC_SERVICE.fetch(
         "http://localhost:18789/",
         {
-          headers: {
-            "Origin": "http://localhost:18789",
-            "Upgrade": "websocket",
-            "Connection": "Upgrade",
-            "Sec-WebSocket-Version": "13",
-            "Sec-WebSocket-Key":
-              c.req.header("Sec-WebSocket-Key") || "dGhlIHNhbXBsZSBub25jZQ==",
-          },
+          headers: buildProxyHeaders(c),
         },
       );
       const openclawWs = openclawResponse.webSocket;
@@ -233,12 +218,12 @@ app.get("/", async (c) => {
       server.addEventListener("close", (event) => {
         try {
           openclawWs.close(event.code, event.reason);
-        } catch {}
+        } catch { }
       });
       server.addEventListener("error", () => {
         try {
           openclawWs.close(1011, "Client error");
-        } catch {}
+        } catch { }
       });
       openclawWs.addEventListener("message", (event) => {
         try {
@@ -250,12 +235,12 @@ app.get("/", async (c) => {
       openclawWs.addEventListener("close", (event) => {
         try {
           server.close(event.code, event.reason);
-        } catch {}
+        } catch { }
       });
       openclawWs.addEventListener("error", () => {
         try {
           server.close(1011, "Server error");
-        } catch {}
+        } catch { }
       });
       return new Response(null, {
         status: 101,
